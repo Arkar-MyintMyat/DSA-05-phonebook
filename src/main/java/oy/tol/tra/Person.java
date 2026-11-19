@@ -3,6 +3,7 @@ package oy.tol.tra;
 public class Person implements Comparable<Person> {
     private String firstName;
     private String lastName;
+    private int cachedHash = 0;
 
     public Person(final Person person) {
         this.firstName = new String(person.firstName);
@@ -39,8 +40,19 @@ public class Person implements Comparable<Person> {
      */
     @Override
     public int hashCode() {
+        if (cachedHash != 0) {
+            return cachedHash;
+        }
         int hash = 5381;
         // Implement hash function here.
+        for (int index = 0; index < lastName.length(); index++) {
+            hash = ((hash << 5) + hash) + lastName.charAt(index);
+        }
+        hash = ((hash << 5) + hash) + ' ';
+        for (int index = 0; index < firstName.length(); index++) {
+            hash = ((hash << 5) + hash) + firstName.charAt(index);
+        }
+        cachedHash = hash;
         return hash;
     }
 

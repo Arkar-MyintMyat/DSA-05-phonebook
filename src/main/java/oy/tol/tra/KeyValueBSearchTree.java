@@ -11,13 +11,13 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
 
     @Override
     public Type getType() {
-        return Type.NONE;
+        return Type.BST;
     }
 
     @Override
     public int size() {
         // TODO: Implement this
-        return 0;
+        return count;
     }
 
     /**
@@ -38,6 +38,9 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
     public String getStatus() {
         String toReturn = "Tree has max depth of " + maxTreeDepth + ".\n";
         toReturn += "Longest collision chain in a tree node is " + TreeNode.longestCollisionChain + "\n";
+        if (null == root) {
+            return toReturn;
+        }
         TreeAnalyzerVisitor<K, V> visitor = new TreeAnalyzerVisitor<>();
         root.accept(visitor);
         toReturn += "Min path height to bottom: " + visitor.minHeight + "\n";
@@ -50,18 +53,85 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
     public boolean add(K key, V value) throws IllegalArgumentException, OutOfMemoryError {
         // TODO: Implement this
         // Remember null check.
+        if (null == key || null == value) {
+            throw new IllegalArgumentException("Key or value cannot be null");
+        }
         // If root is null, should go there.
-        
-            // update the root node. But it may have children
-            // so do not just replace it with this new node but set
-            // the keys and values for the already existing root.
-            
-        return false;
+        if (null == root) {
+            root = new TreeNode<>(key, value);
+            count = 1;
+            if (maxTreeDepth < 1) {
+                maxTreeDepth = 1;
+            }
+            return true;
+        }
+        int hash = key.hashCode();
+        TreeNode<K, V> current = root;
+        int depth = 1;
+        while (true) {
+            int comparison = compare(key, hash, current.keyValue.getKey());
+            if (comparison == 0) {
+                // update the root node. But it may have children
+                // so do not just replace it with this new node but set
+                // the keys and values for the already existing root.
+                current.keyValue.setValue(value);
+                return true;
+            }
+            depth++;
+            if (comparison < 0) {
+                if (null == current.left) {
+                    current.left = new TreeNode<>(key, value);
+                    break;
+                }
+                current = current.left;
+            } else {
+                if (null == current.right) {
+                    current.right = new TreeNode<>(key, value);
+                    break;
+                }
+                current = current.right;
+            }
+        }
+        count++;
+        if (depth > maxTreeDepth) {
+            maxTreeDepth = depth;
+        }
+        return true;
+    }
+
+    private int compare(K key, int keyHash, K nodeKey) {
+        int nodeHash = nodeKey.hashCode();
+        if (keyHash < nodeHash) {
+            return -1;
+        }
+        if (keyHash > nodeHash) {
+            return 1;
+        }
+        if (key.equals(nodeKey)) {
+            return 0;
+        }
+        int comparison = key.compareTo(nodeKey);
+        if (comparison == 0) {
+            return 1;
+        }
+        return comparison;
     }
 
     @Override
     public V find(K key) throws IllegalArgumentException {
         // TODO: Implement this. //Think about this
+        if (null == key) {
+            throw new IllegalArgumentException("Key to find cannot be null");
+        }
+        int hash = key.hashCode();
+        TreeNode<K, V> current = root;
+        while (null != current) {
+            int comparison = compare(key, hash, current.keyValue.getKey());
+            if (comparison == 0) {
+                return current.keyValue.getValue();
+            }
+            current = comparison < 0 ? current.left : current.right;
+        }
         return (null);
     }
 
@@ -72,6 +142,10 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
 
     @Override
     public Pair<K, V>[] toSortedArray() {
+        if (null == root) {
+            TreeToArrayVisitor<K, V> empty = new TreeToArrayVisitor<>(0);
+            return empty.getArray();
+        }
         TreeToArrayVisitor<K, V> visitor = new TreeToArrayVisitor<>(count);
         root.accept(visitor);
         Pair<K, V>[] sorted = visitor.getArray();

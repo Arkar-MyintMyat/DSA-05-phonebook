@@ -22,7 +22,7 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
 
     @Override
     public Type getType() {
-        return Type.NONE;
+        return Type.HASHTABLE;
     }
 
     @SuppressWarnings("unchecked")
@@ -42,7 +42,7 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
     @Override
     public int size() {
         // TODO: Implement this.
-        return 0;
+        return count;
     }
 
     /**
@@ -72,6 +72,9 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
     public boolean add(K key, V value) throws IllegalArgumentException, OutOfMemoryError {
         // TODO: Implement this.
         // Remeber to check for null values.
+        if (null == key || null == value) {
+            throw new IllegalArgumentException("Key or value cannot be null");
+        }
 
         // Checks if the LOAD_FACTOR has been exceeded --> if so, reallocates to a bigger hashtable.
         if (((double)count * (1.0 + LOAD_FACTOR)) >= values.length) {
@@ -82,17 +85,69 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         // if index was taken by different Person (collision), get new hash and index,
         // insert into table when the index has a null in it,
         // return true if existing Person updated or new Person inserted.
-        
-        return false;
+        int hash = key.hashCode();
+        int index = indexFor(hash, values.length);
+        int probingSteps = 0;
+        while (true) {
+            Pair<K, V> current = values[index];
+            if (null == current) {
+                values[index] = new Pair<>(key, value);
+                count++;
+                if (probingSteps > 0) {
+                    collisionCount++;
+                }
+                if (probingSteps > maxProbingSteps) {
+                    maxProbingSteps = probingSteps;
+                }
+                return true;
+            }
+            K currentKey = current.getKey();
+            if (currentKey.hashCode() == hash && currentKey.equals(key)) {
+                current.setValue(value);
+                return true;
+            }
+            probingSteps++;
+            index++;
+            if (index == values.length) {
+                index = 0;
+            }
+        }
     }
 
     @Override
     public V find(K key) throws IllegalArgumentException {
         // Remember to check for null.
+        if (null == key) {
+            throw new IllegalArgumentException("Key to find cannot be null");
+        }
 
         // Must use same method for computing index as add method
-        
+        int hash = key.hashCode();
+        int index = indexFor(hash, values.length);
+        for (int steps = 0; steps < values.length; steps++) {
+            Pair<K, V> current = values[index];
+            if (null == current) {
+                return null;
+            }
+            K currentKey = current.getKey();
+            if (currentKey.hashCode() == hash && currentKey.equals(key)) {
+                return current.getValue();
+            }
+            index++;
+            if (index == values.length) {
+                index = 0;
+            }
+        }
         return null;
+    }
+
+    private static int indexFor(int hash, int length) {
+        hash ^= (hash >>> 16);
+        hash *= 0x85ebca6b;
+        hash ^= (hash >>> 13);
+        hash *= 0xc2b2ae35;
+        hash ^= (hash >>> 16);
+        return (hash & 0x7fffffff) % length;
     }
 
     @Override
